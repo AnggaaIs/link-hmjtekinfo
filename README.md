@@ -40,6 +40,12 @@ create table links (
   active boolean default true,
   created_at timestamp with time zone default now()
 );
+
+-- RPC function untuk increment clicks
+create or replace function increment_link_clicks(link_slug text)
+returns void as $$
+  update links set clicks = clicks + 1 where slug = link_slug;
+$$ language sql;
 ```
 
 ## Development
