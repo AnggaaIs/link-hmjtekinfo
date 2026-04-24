@@ -8,7 +8,13 @@
 
 	let { data, isLoading }: Props = $props();
 
-	let status = $state<'loading' | 'redirecting' | 'fallback'>('loading');
+	const status = $derived.by<'loading' | 'redirecting' | 'fallback'>(() => {
+		if (isLoading) {
+			return 'loading';
+		}
+
+		return data?.url ? 'redirecting' : 'fallback';
+	});
 
 	const pageTitle = $derived(
 		status === 'loading'
@@ -18,31 +24,43 @@
 				: 'Tautan tidak ditemukan | HMJ Tekinfo'
 	);
 
-	$effect(() => {
-		if (!isLoading) {
-			if (data?.url) {
-				status = 'redirecting';
-				const timer = setTimeout(() => {
-					window.location.replace(data.url);
-				}, 800);
-				return () => clearTimeout(timer);
-			} else {
-				status = 'fallback';
-				const timer = setTimeout(() => {
-					window.location.replace('https://hmjtekinfo.web.id');
-				}, 1500);
-				return () => clearTimeout(timer);
-			}
-		}
-	});
-
 	const displayUrl = $derived(
 		data?.url ? data.url.replace(/^https?:\/\//, '').replace(/\/$/, '') : 'hmjtekinfo.web.id'
 	);
+
+	const pageDescription = $derived(
+		status === 'loading'
+			? 'Memvalidasi tujuan tautan pendek HMJ Tekinfo.'
+			: status === 'redirecting'
+				? `Mengarahkan ke ${data?.title || displayUrl}.`
+				: 'Tautan pendek HMJ Tekinfo tidak ditemukan.'
+	);
+
+	$effect(() => {
+		if (status === 'redirecting' && data?.url) {
+			const timer = setTimeout(() => {
+				window.location.replace(data.url);
+			}, 800);
+			return () => clearTimeout(timer);
+		}
+
+		if (status === 'fallback') {
+			const timer = setTimeout(() => {
+				window.location.replace('https://hmjtekinfo.web.id');
+			}, 1500);
+			return () => clearTimeout(timer);
+		}
+	});
+
 </script>
 
 <svelte:head>
 	<title>{pageTitle}</title>
+	<meta name="description" content={pageDescription} />
+	<meta property="og:title" content={pageTitle} />
+	<meta property="og:description" content={pageDescription} />
+	<meta property="twitter:title" content={pageTitle} />
+	<meta property="twitter:description" content={pageDescription} />
 </svelte:head>
 
 <div
